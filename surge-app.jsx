@@ -2262,6 +2262,7 @@ function WallView() {
 // Quand tu as un nouveau client : prends le prochain code libre, envoie-le-lui
 // Quand un code est utilisé, il est "brûlé" sur cet appareil
 const ACCESS_CODES = [
+  "SURGE-FEV26",
   "SURGE-A7K9X2",
   "SURGE-B3M8P1",
   "SURGE-C5N2Q7",
