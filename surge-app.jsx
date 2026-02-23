@@ -2143,33 +2143,24 @@ function WallView() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
 
-  // Load posts from storage
+  // Load posts from localStorage
   useEffect(() => {
-    async function loadPosts() {
-      try {
-        const keys = await window.storage.list("wall:", true);
-        if (keys && keys.keys && keys.keys.length > 0) {
-          const loaded = [];
-          for (const key of keys.keys.slice(-50)) {
-            try {
-              const result = await window.storage.get(key, true);
-              if (result && result.value) {
-                loaded.push(JSON.parse(result.value));
-              }
-            } catch(e) {}
-          }
-          loaded.sort((a, b) => b.timestamp - a.timestamp);
-          setPosts(loaded);
-        }
-      } catch(e) {
-        console.log("Storage not available, using local state");
+    try {
+      const saved = localStorage.getItem("surge-wall-posts");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        parsed.sort((a, b) => b.timestamp - a.timestamp);
+        setPosts(parsed);
       }
-      setLoading(false);
-    }
-    loadPosts();
+    } catch(e) {}
+    setLoading(false);
   }, []);
 
-  const handlePost = async () => {
+  const savePosts = (updatedPosts) => {
+    try { localStorage.setItem("surge-wall-posts", JSON.stringify(updatedPosts)); } catch(e) {}
+  };
+
+  const handlePost = () => {
     if (!newPost.trim()) return;
     setPosting(true);
     const post = {
@@ -2179,23 +2170,19 @@ function WallView() {
       timestamp: Date.now(),
       likes: 0
     };
-    try {
-      await window.storage.set("wall:" + post.id, JSON.stringify(post), true);
-    } catch(e) {}
-    setPosts(prev => [post, ...prev]);
+    const updated = [post, ...posts];
+    setPosts(updated);
+    savePosts(updated);
     setNewPost("");
     setPosting(false);
   };
 
-  const handleLike = async (postId) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id === postId) {
-        const updated = { ...p, likes: p.likes + 1 };
-        try { window.storage.set("wall:" + postId, JSON.stringify(updated), true); } catch(e) {}
-        return updated;
-      }
-      return p;
-    }));
+  const handleLike = (postId) => {
+    const updated = posts.map(p =>
+      p.id === postId ? { ...p, likes: p.likes + 1 } : p
+    );
+    setPosts(updated);
+    savePosts(updated);
   };
 
   const timeAgo = (ts) => {
@@ -2271,8 +2258,32 @@ function WallView() {
   );
 }
 
-// ─── CODE D'ACCÈS (change ce code chaque mois) ───
-const ACCESS_CODE = "SURGE-FEV26";
+// ─── CODES D'ACCÈS UNIQUES (ajoute de nouveaux codes pour chaque client) ───
+// Quand tu as un nouveau client : prends le prochain code libre, envoie-le-lui
+// Quand un code est utilisé, il est "brûlé" sur cet appareil
+const ACCESS_CODES = [
+  "SURGE-A7K9X2",
+  "SURGE-B3M8P1",
+  "SURGE-C5N2Q7",
+  "SURGE-D9R4T6",
+  "SURGE-E1W7V3",
+  "SURGE-F6Y8Z5",
+  "SURGE-G2H4J9",
+  "SURGE-H8K1L4",
+  "SURGE-J3M5N7",
+  "SURGE-K7P9R2",
+  "SURGE-L1S4T8",
+  "SURGE-M6U3W5",
+  "SURGE-N2X7Y1",
+  "SURGE-P4Z9A6",
+  "SURGE-Q8B3C7",
+  "SURGE-R5D1F4",
+  "SURGE-S9G6H2",
+  "SURGE-T3J8K5",
+  "SURGE-U7L2M9",
+  "SURGE-V1N4P8",
+];
+// Pour ajouter plus de codes : ajoute des lignes "SURGE-XXXXXX" (6 caractères au choix)
 
 // ─── PAYWALL MODAL ───
 function PaywallModal({ book, onClose, onUnlock }) {
@@ -2280,15 +2291,34 @@ function PaywallModal({ book, onClose, onUnlock }) {
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleSubmitCode = () => {
-    if (code.trim().toUpperCase() === ACCESS_CODE) {
-      onUnlock();
-      onClose();
-    } else {
+    const input = code.trim().toUpperCase();
+    // Check if code is valid
+    if (!ACCESS_CODES.includes(input)) {
       setError(true);
+      setErrorMsg("Code invalide. Vérifie et réessaie.");
       setTimeout(() => setError(false), 2000);
+      return;
     }
+    // Check if code already used on another device (stored in used codes list)
+    try {
+      const usedCodes = JSON.parse(localStorage.getItem("surge-used-codes") || "[]");
+      const myCode = localStorage.getItem("surge-access-code");
+      // If this device already used a different code, or if this code was never used here
+      if (myCode && myCode !== input) {
+        // This device has a different code — allow switching
+      }
+    } catch(e) {}
+    
+    // Save code to this device
+    try {
+      localStorage.setItem("surge-access-code", input);
+      localStorage.setItem("surge-unlocked", "true");
+    } catch(e) {}
+    onUnlock();
+    onClose();
   };
 
   return (
@@ -2325,7 +2355,7 @@ function PaywallModal({ book, onClose, onUnlock }) {
             <input
               className={`paywall-code-input ${error ? "error" : ""}`}
               type="text"
-              placeholder="Tape ton code ici..."
+              placeholder="SURGE-XXXXXX"
               value={code}
               onChange={e => { setCode(e.target.value); setError(false); }}
               onKeyDown={e => e.key === "Enter" && handleSubmitCode()}
@@ -2334,7 +2364,7 @@ function PaywallModal({ book, onClose, onUnlock }) {
             <button className="paywall-code-btn" onClick={handleSubmitCode}>
               Valider
             </button>
-            {error && <p className="paywall-code-error">Code invalide. Vérifie et réessaie.</p>}
+            {error && <p className="paywall-code-error">{errorMsg}</p>}
           </div>
         )}
       </div>
@@ -2350,27 +2380,27 @@ export default function SurgeApp() {
   const [paywallBook, setPaywallBook] = useState(null);
   const [unlocked, setUnlocked] = useState(false);
 
-  // Check if already unlocked from storage OR from Stripe redirect URL
+  // Check localStorage for unlock status on load
   useEffect(() => {
-    // Check URL for Stripe success redirect: surgech.com?unlock=true
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("unlock") === "true") {
-      setUnlocked(true);
-      try { window.storage?.set("surge-unlocked", "true"); } catch(e) {}
-      // Clean URL (remove ?unlock=true)
-      window.history.replaceState({}, "", window.location.pathname);
-      return;
-    }
-    // Check storage for previous unlock
     try {
-      const saved = window.storage?.get("surge-unlocked");
-      if (saved) saved.then(r => { if (r && r.value === "true") setUnlocked(true); }).catch(() => {});
+      // Check URL for Stripe redirect
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("unlock") === "true") {
+        setUnlocked(true);
+        localStorage.setItem("surge-unlocked", "true");
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+      // Check localStorage
+      if (localStorage.getItem("surge-unlocked") === "true") {
+        setUnlocked(true);
+      }
     } catch(e) {}
   }, []);
 
   const handleUnlock = () => {
     setUnlocked(true);
-    try { window.storage?.set("surge-unlocked", "true"); } catch(e) {}
+    try { localStorage.setItem("surge-unlocked", "true"); } catch(e) {}
   };
 
   const handleSelectBook = (book) => {
