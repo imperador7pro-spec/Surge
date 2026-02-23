@@ -2218,7 +2218,7 @@ function PaywallModal({ book, onClose }) {
         </div>
         <a
           className="paywall-cta"
-          href="https://buy.stripe.com/REMPLACE_PAR_TON_LIEN_STRIPE"
+          href=https://buy.stripe.com/3cI00jcyP6tp7yla0Z6Ri00
           target="_blank"
           rel="noopener noreferrer"
         >
