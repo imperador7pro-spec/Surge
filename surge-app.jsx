@@ -2272,7 +2272,7 @@ function WallView() {
 }
 
 // ─── CODE D'ACCÈS (change ce code chaque mois) ───
-const ACCESS_CODE = "SURGE-2k26";
+const ACCESS_CODE = "SURGE-FEV26";
 
 // ─── PAYWALL MODAL ───
 function PaywallModal({ book, onClose, onUnlock }) {
@@ -2350,8 +2350,18 @@ export default function SurgeApp() {
   const [paywallBook, setPaywallBook] = useState(null);
   const [unlocked, setUnlocked] = useState(false);
 
-  // Check if already unlocked from storage
+  // Check if already unlocked from storage OR from Stripe redirect URL
   useEffect(() => {
+    // Check URL for Stripe success redirect: surgech.com?unlock=true
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("unlock") === "true") {
+      setUnlocked(true);
+      try { window.storage?.set("surge-unlocked", "true"); } catch(e) {}
+      // Clean URL (remove ?unlock=true)
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    // Check storage for previous unlock
     try {
       const saved = window.storage?.get("surge-unlocked");
       if (saved) saved.then(r => { if (r && r.value === "true") setUnlocked(true); }).catch(() => {});
