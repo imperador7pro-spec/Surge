@@ -1227,6 +1227,190 @@ const STYLES = `
     font-weight: 500;
   }
 
+  .surge-nav {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .surge-nav-item {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #555;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  .surge-nav-item.active {
+    color: #c9a84c;
+    background: rgba(201,168,76,0.1);
+  }
+  .surge-nav-item:hover:not(.active) {
+    color: #888;
+  }
+
+  /* ── Wall View ── */
+  .wall-view {
+    padding: 20px 24px 80px;
+    position: relative;
+    z-index: 2;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .wall-header {
+    text-align: center;
+    padding: 40px 0 32px;
+  }
+  .wall-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: #c9a84c;
+    margin-bottom: 8px;
+  }
+  .wall-subtitle {
+    font-size: 14px;
+    color: #666;
+    font-weight: 300;
+  }
+  .wall-form {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,168,76,0.1);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  .wall-input-name {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #e8e4dc;
+    font-size: 14px;
+    margin-bottom: 10px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .wall-input-name:focus {
+    border-color: rgba(201,168,76,0.3);
+  }
+  .wall-input-name::placeholder,
+  .wall-textarea::placeholder {
+    color: #444;
+    font-style: italic;
+  }
+  .wall-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: #e8e4dc;
+    font-size: 15px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .wall-textarea:focus {
+    border-color: rgba(201,168,76,0.3);
+  }
+  .wall-form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .wall-char-count {
+    font-size: 11px;
+    color: #444;
+  }
+  .wall-post-btn {
+    background: linear-gradient(135deg, #c9a84c, #b8942f);
+    color: #0a0a0e;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+  }
+  .wall-post-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(201,168,76,0.3);
+  }
+  .wall-post-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .wall-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .wall-post {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.2s ease;
+  }
+  .wall-post:hover {
+    border-color: rgba(201,168,76,0.15);
+    background: rgba(255,255,255,0.03);
+  }
+  .wall-post-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: #e8e4dc;
+    line-height: 1.7;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+  .wall-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .wall-post-author {
+    color: #c9a84c;
+    font-weight: 500;
+  }
+  .wall-post-time {
+    color: #444;
+  }
+  .wall-like-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #666;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.2s ease;
+  }
+  .wall-like-btn:hover {
+    border-color: rgba(201,168,76,0.3);
+    color: #c9a84c;
+  }
+  .wall-empty {
+    text-align: center;
+    color: #444;
+    font-size: 15px;
+    padding: 40px 0;
+    font-style: italic;
+  }
+
   /* ── Hero ── */
   .surge-hero {
     text-align: center;
@@ -1864,8 +2048,161 @@ function ReaderView({ book, onBack }) {
   );
 }
 
+// ─── CURRENCY DETECTION ───
+function useCurrency() {
+  const [currency, setCurrency] = useState({ symbol: "€", code: "EUR", price: "19.90", label: "€" });
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      const lang = navigator.language || "";
+      const isSwiss = tz.includes("Zurich") || tz.includes("Europe/Zurich") || lang.startsWith("de-CH") || lang.startsWith("fr-CH") || lang.startsWith("it-CH");
+      if (isSwiss) {
+        setCurrency({ symbol: "CHF", code: "CHF", price: "19.90", label: "CHF" });
+      }
+    } catch(e) {}
+  }, []);
+  return currency;
+}
+
+// ─── WALL VIEW (Mur de Citations) ───
+function WallView() {
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState("");
+  const [authorName, setAuthorName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
+
+  // Load posts from storage
+  useEffect(() => {
+    async function loadPosts() {
+      try {
+        const keys = await window.storage.list("wall:", true);
+        if (keys && keys.keys && keys.keys.length > 0) {
+          const loaded = [];
+          for (const key of keys.keys.slice(-50)) {
+            try {
+              const result = await window.storage.get(key, true);
+              if (result && result.value) {
+                loaded.push(JSON.parse(result.value));
+              }
+            } catch(e) {}
+          }
+          loaded.sort((a, b) => b.timestamp - a.timestamp);
+          setPosts(loaded);
+        }
+      } catch(e) {
+        console.log("Storage not available, using local state");
+      }
+      setLoading(false);
+    }
+    loadPosts();
+  }, []);
+
+  const handlePost = async () => {
+    if (!newPost.trim()) return;
+    setPosting(true);
+    const post = {
+      id: Date.now().toString(),
+      text: newPost.trim(),
+      author: authorName.trim() || "Anonyme",
+      timestamp: Date.now(),
+      likes: 0
+    };
+    try {
+      await window.storage.set("wall:" + post.id, JSON.stringify(post), true);
+    } catch(e) {}
+    setPosts(prev => [post, ...prev]);
+    setNewPost("");
+    setPosting(false);
+  };
+
+  const handleLike = async (postId) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        const updated = { ...p, likes: p.likes + 1 };
+        try { window.storage.set("wall:" + postId, JSON.stringify(updated), true); } catch(e) {}
+        return updated;
+      }
+      return p;
+    }));
+  };
+
+  const timeAgo = (ts) => {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "à l'instant";
+    if (mins < 60) return `il y a ${mins}min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `il y a ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `il y a ${days}j`;
+  };
+
+  return (
+    <div className="wall-view">
+      <div className="wall-header animate-up">
+        <h2 className="wall-title">Mur d'Inspiration</h2>
+        <p className="wall-subtitle">Partage la citation qui t'a le plus marqué</p>
+      </div>
+
+      {/* Post form */}
+      <div className="wall-form animate-up delay-1">
+        <input
+          className="wall-input-name"
+          type="text"
+          placeholder="Ton prénom (optionnel)"
+          value={authorName}
+          onChange={e => setAuthorName(e.target.value)}
+          maxLength={30}
+        />
+        <textarea
+          className="wall-textarea"
+          placeholder="« La citation qui t'a transformé... »"
+          value={newPost}
+          onChange={e => setNewPost(e.target.value)}
+          maxLength={280}
+          rows={3}
+        />
+        <div className="wall-form-footer">
+          <span className="wall-char-count">{newPost.length}/280</span>
+          <button
+            className="wall-post-btn"
+            onClick={handlePost}
+            disabled={!newPost.trim() || posting}
+          >
+            {posting ? "..." : "Publier ✦"}
+          </button>
+        </div>
+      </div>
+
+      {/* Posts */}
+      <div className="wall-posts">
+        {loading && <p className="wall-empty">Chargement...</p>}
+        {!loading && posts.length === 0 && (
+          <div className="wall-empty">
+            <p>Aucune citation encore. Sois le premier à inspirer !</p>
+          </div>
+        )}
+        {posts.map((post, i) => (
+          <div key={post.id} className={`wall-post animate-up delay-${Math.min(i + 1, 4)}`}>
+            <p className="wall-post-text">« {post.text} »</p>
+            <div className="wall-post-meta">
+              <span className="wall-post-author">— {post.author}</span>
+              <span className="wall-post-time">{timeAgo(post.timestamp)}</span>
+              <button className="wall-like-btn" onClick={() => handleLike(post.id)}>
+                ♡ {post.likes > 0 ? post.likes : ""}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── PAYWALL MODAL ───
 function PaywallModal({ book, onClose }) {
+  const curr = useCurrency();
   return (
     <div className="paywall-overlay" onClick={onClose}>
       <div className="paywall-modal" onClick={e => e.stopPropagation()}>
@@ -1885,7 +2222,7 @@ function PaywallModal({ book, onClose }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Débloquer tout — 19,90€/mois
+          Débloquer tout — {curr.price} {curr.label}/mois
         </a>
         <p className="paywall-sub">Annulable à tout moment. Satisfait ou remboursé 7 jours.</p>
       </div>
@@ -1928,7 +2265,16 @@ export default function SurgeApp() {
       {/* Header */}
       <div className="surge-header">
         <div className="surge-logo" onClick={handleBack}>SURGE</div>
-        <span className="surge-tagline">Lève-toi par la lecture</span>
+        <div className="surge-nav">
+          <span
+            className={`surge-nav-item ${view !== "wall" ? "active" : ""}`}
+            onClick={handleBack}
+          >📚 Livres</span>
+          <span
+            className={`surge-nav-item ${view === "wall" ? "active" : ""}`}
+            onClick={() => { setView("wall"); window.scrollTo(0,0); }}
+          >✦ Mur</span>
+        </div>
       </div>
 
       {/* Views */}
@@ -1942,6 +2288,9 @@ export default function SurgeApp() {
       )}
       {view === "reader" && selectedBook && (
         <ReaderView book={selectedBook} onBack={handleBack} />
+      )}
+      {view === "wall" && (
+        <WallView />
       )}
 
       {/* Paywall Modal */}
