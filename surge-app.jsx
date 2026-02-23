@@ -1795,6 +1795,75 @@ const STYLES = `
     color: #555;
     margin-top: 8px;
   }
+  .paywall-divider {
+    width: 60px;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 20px auto;
+  }
+  .paywall-code-toggle {
+    background: none;
+    border: none;
+    color: #c9a84c;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .paywall-code-toggle:hover { opacity: 1; }
+  .paywall-code-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .paywall-code-input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #e8e4dc;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 3px;
+    font-weight: 600;
+    width: 240px;
+    outline: none;
+    text-transform: uppercase;
+  }
+  .paywall-code-input:focus {
+    border-color: #c9a84c;
+  }
+  .paywall-code-input.error {
+    border-color: #e74c3c;
+    animation: shake 0.4s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .paywall-code-btn {
+    background: linear-gradient(135deg, #c9a84c, #b8942f);
+    color: #0a0a0e;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .paywall-code-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(201,168,76,0.3);
+  }
+  .paywall-code-error {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 4px;
+  }
 
   /* ── Footer ── */
   .surge-footer {
@@ -1847,7 +1916,7 @@ const STYLES = `
 // ─── FREE BOOKS (accès gratuit) ───
 const FREE_BOOKS = ["tu-ne-me-fais-pas-mal", "1001-erreurs", "vitesse-de-dieu"];
 
-function LibraryView({ onSelectBook, activeTheme, setActiveTheme, onPaywall }) {
+function LibraryView({ onSelectBook, activeTheme, setActiveTheme, onPaywall, unlocked }) {
   const filtered = activeTheme === "all"
     ? LIBRARY
     : LIBRARY.filter(b => b.theme === activeTheme);
@@ -1886,19 +1955,21 @@ function LibraryView({ onSelectBook, activeTheme, setActiveTheme, onPaywall }) {
           const available = book.chapters.length > 0;
           const isFree = FREE_BOOKS.includes(book.id);
           const isPremium = available && !isFree;
+          const isAccessible = isFree || unlocked;
           return (
             <div
               key={book.id}
-              className={`book-card animate-up delay-${Math.min(i + 2, 6)} ${!available ? "locked" : ""} ${isPremium ? "premium" : ""}`}
+              className={`book-card animate-up delay-${Math.min(i + 2, 6)} ${!available ? "locked" : ""} ${isPremium && !unlocked ? "premium" : ""}`}
               onClick={() => {
                 if (!available) return;
-                if (isFree) return onSelectBook(book);
+                if (isAccessible) return onSelectBook(book);
                 return onPaywall(book);
               }}
             >
               <span className="cover-icon">{book.cover}</span>
               {isFree && <span className="free-badge">GRATUIT</span>}
-              {isPremium && <span className="lock-badge">🔒</span>}
+              {isPremium && !unlocked && <span className="lock-badge">🔒</span>}
+              {isPremium && unlocked && <span className="free-badge" style={{background:"linear-gradient(135deg, #c9a84c, #b8942f)"}}>✦ PREMIUM</span>}
               <h3>{book.title}</h3>
               <p className="subtitle">{book.subtitle}</p>
               <div className="meta">
@@ -2200,9 +2271,26 @@ function WallView() {
   );
 }
 
+// ─── CODE D'ACCÈS (change ce code chaque mois) ───
+const ACCESS_CODE = "SURGE-2k26";
+
 // ─── PAYWALL MODAL ───
-function PaywallModal({ book, onClose }) {
+function PaywallModal({ book, onClose, onUnlock }) {
   const curr = useCurrency();
+  const [showCode, setShowCode] = useState(false);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(false);
+
+  const handleSubmitCode = () => {
+    if (code.trim().toUpperCase() === ACCESS_CODE) {
+      onUnlock();
+      onClose();
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
   return (
     <div className="paywall-overlay" onClick={onClose}>
       <div className="paywall-modal" onClick={e => e.stopPropagation()}>
@@ -2225,6 +2313,30 @@ function PaywallModal({ book, onClose }) {
           Débloquer tout — {curr.price} {curr.label}/mois
         </a>
         <p className="paywall-sub">Annulable à tout moment. Satisfait ou remboursé 7 jours.</p>
+
+        <div className="paywall-divider" />
+
+        {!showCode ? (
+          <button className="paywall-code-toggle" onClick={() => setShowCode(true)}>
+            J'ai déjà un code d'accès →
+          </button>
+        ) : (
+          <div className="paywall-code-form">
+            <input
+              className={`paywall-code-input ${error ? "error" : ""}`}
+              type="text"
+              placeholder="Tape ton code ici..."
+              value={code}
+              onChange={e => { setCode(e.target.value); setError(false); }}
+              onKeyDown={e => e.key === "Enter" && handleSubmitCode()}
+              autoFocus
+            />
+            <button className="paywall-code-btn" onClick={handleSubmitCode}>
+              Valider
+            </button>
+            {error && <p className="paywall-code-error">Code invalide. Vérifie et réessaie.</p>}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2236,6 +2348,20 @@ export default function SurgeApp() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [activeTheme, setActiveTheme] = useState("all");
   const [paywallBook, setPaywallBook] = useState(null);
+  const [unlocked, setUnlocked] = useState(false);
+
+  // Check if already unlocked from storage
+  useEffect(() => {
+    try {
+      const saved = window.storage?.get("surge-unlocked");
+      if (saved) saved.then(r => { if (r && r.value === "true") setUnlocked(true); }).catch(() => {});
+    } catch(e) {}
+  }, []);
+
+  const handleUnlock = () => {
+    setUnlocked(true);
+    try { window.storage?.set("surge-unlocked", "true"); } catch(e) {}
+  };
 
   const handleSelectBook = (book) => {
     setSelectedBook(book);
@@ -2244,7 +2370,11 @@ export default function SurgeApp() {
   };
 
   const handlePaywall = (book) => {
-    setPaywallBook(book);
+    if (unlocked) {
+      handleSelectBook(book);
+    } else {
+      setPaywallBook(book);
+    }
   };
 
   const handleBack = () => {
@@ -2284,6 +2414,7 @@ export default function SurgeApp() {
           onPaywall={handlePaywall}
           activeTheme={activeTheme}
           setActiveTheme={setActiveTheme}
+          unlocked={unlocked}
         />
       )}
       {view === "reader" && selectedBook && (
@@ -2295,7 +2426,7 @@ export default function SurgeApp() {
 
       {/* Paywall Modal */}
       {paywallBook && (
-        <PaywallModal book={paywallBook} onClose={() => setPaywallBook(null)} />
+        <PaywallModal book={paywallBook} onClose={() => setPaywallBook(null)} onUnlock={handleUnlock} />
       )}
     </div>
   );
